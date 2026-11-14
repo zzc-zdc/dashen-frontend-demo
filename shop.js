@@ -68,7 +68,7 @@
   const currency = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 });
   const money = (amount) => `¥${currency.format(amount)}`;
   const image = (product) => `assets/${product.id}.webp`;
-  const preview = (product, width) => `assets/previews/${product.id}-${width}.webp`;
+  const preview = (product, width) => `assets/display/${product.id}-${width}.webp`;
   const maxQuantity = 99;
 
   const otherwiseEmpty = (value) => Array.isArray(value) ? value : [];
@@ -119,7 +119,7 @@
   function card(product) {
     return `<article class="product-card" data-card="${product.id}">
       <div class="product-media">
-        <button class="product-image-link" type="button" data-product="${product.id}" aria-label="查看${product.name}详情"><img src="${image(product)}" srcset="assets/previews/${product.id}-480.webp 480w, assets/previews/${product.id}-768.webp 768w, ${image(product)} 2048w" sizes="(max-width: 700px) 47vw, (max-width: 1600px) 30vw, 460px" alt="${product.alt}" loading="lazy" decoding="async" width="2048" height="2048"></button>
+        <button class="product-image-link" type="button" data-product="${product.id}" aria-label="查看${product.name}详情"><img src="${preview(product, 480)}" srcset="${preview(product, 480)} 480w, ${preview(product, 768)} 768w, ${preview(product, 1080)} 1080w" sizes="(max-width: 700px) 47vw, (max-width: 1600px) 30vw, 460px" alt="${product.alt}" loading="lazy" decoding="async" width="2048" height="2048"></button>
         ${product.tag ? `<span class="product-tag">${product.tag}</span>` : ''}
         ${favoriteButton(product, 'product-favorite')}
         <button type="button" class="product-add" data-add="${product.id}" aria-label="把${product.name}加入购物袋">${icon('plus')}</button>
@@ -295,7 +295,7 @@
   function tile(product, end = '') {
     return `<li class="shop-item">
       <button type="button" class="shop-item-link" data-product="${product.id}" aria-label="查看${product.name}详情">
-        <span class="shop-item-image"><img src="${preview(product, 480)}" alt="" width="80" height="88" loading="lazy" decoding="async"></span>
+        <span class="shop-item-image"><img src="${preview(product, 240)}" alt="" width="80" height="88" loading="lazy" decoding="async"></span>
         <span class="shop-item-main"><span class="shop-item-title">${product.name} <span lang="en">${product.english}</span></span><span>${product.summary}</span><span class="shop-item-price">${money(product.price)}</span></span>
       </button>
       ${end}

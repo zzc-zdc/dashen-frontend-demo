@@ -172,9 +172,11 @@
     if (slides.length < 2) return;
 
     let current = Math.max(0, slides.findIndex(slide => slide.classList.contains('is-active')));
+    let requested = current;
+    const pendingImages = new WeakMap();
 
-    function selectSlide(index) {
-      current = (index + slides.length) % slides.length;
+    function showSlide(index) {
+      current = index;
       const slideKey = slides[current].dataset.slide ?? String(current);
 
       slides.forEach((slide, slideIndex) => {
@@ -194,6 +196,42 @@
       if (counter) counter.textContent = String(current + 1).padStart(2, '0');
     }
 
+    function selectSlide(index) {
+      const target = (index + slides.length) % slides.length;
+      requested = target;
+      const slide = slides[target];
+      const image = slide.querySelector('.hero-art img');
+
+      if (image?.dataset.src && !pendingImages.has(image)) {
+        image.srcset = image.dataset.srcset;
+        image.src = image.dataset.src;
+        const ready = image.decode().then(
+          () => { slide.classList.remove('has-unavailable-image'); },
+          () => { slide.classList.add('has-unavailable-image'); },
+        ).finally(() => {
+          pendingImages.delete(image);
+          if (image.naturalWidth) {
+            delete image.dataset.src;
+            delete image.dataset.srcset;
+          }
+        });
+        pendingImages.set(image, ready);
+      }
+
+      const ready = image && pendingImages.get(image);
+      if (ready) {
+        hero.classList.add('is-loading-slide');
+        ready.then(() => {
+          if (requested !== target) return;
+          hero.classList.remove('is-loading-slide');
+          showSlide(target);
+        });
+      } else {
+        hero.classList.remove('is-loading-slide');
+        showSlide(target);
+      }
+    }
+
     hero.addEventListener('click', event => {
       const control = event.target.closest('[data-slide-to], [data-slide-prev], [data-slide-next]');
       if (!control) return;
@@ -209,7 +247,7 @@
         return;
       }
 
-      selectSlide(current + (control.hasAttribute('data-slide-prev') ? -1 : 1));
+      selectSlide(requested + (control.hasAttribute('data-slide-prev') ? -1 : 1));
       resetAutoplay();
     });
 
@@ -218,9 +256,10 @@
       if (!event.target.closest('[data-hero-controls], [data-slide-to], [data-slide-prev], [data-slide-next]')) return;
 
       event.preventDefault();
-      selectSlide(current + (event.key === 'ArrowLeft' ? -1 : 1));
+      selectSlide(requested + (event.key === 'ArrowLeft' ? -1 : 1));
       if (event.target.closest('[data-slide-to]')) {
-        dots.find(dot => dot.getAttribute('aria-current') === 'true')?.focus();
+        const targetKey = slides[requested].dataset.slide ?? String(requested);
+        dots.find(dot => dot.dataset.slideTo === targetKey)?.focus();
       }
       resetAutoplay();
     });
@@ -244,7 +283,7 @@
       touchOrigin = null;
 
       if (Math.abs(deltaX) > 56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.7) {
-        selectSlide(current + (deltaX < 0 ? 1 : -1));
+        selectSlide(requested + (deltaX < 0 ? 1 : -1));
         resetAutoplay();
       }
     }, { passive: true });
@@ -258,7 +297,9 @@
       hero.querySelector('[data-slide-announcer]') ?? counter,
       { play: '播放主视觉轮播', pause: '暂停主视觉轮播' },
       4700,
-      () => selectSlide(current + 1)
+      () => {
+        if (!hero.classList.contains('is-loading-slide')) selectSlide(current + 1);
+      }
     );
   }
 
